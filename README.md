@@ -1,4 +1,4 @@
-# Motivation
+# Motivation
 
 This tutorial is born to show how we can create a retry mechanism for our functions. We have to keep in mind that triggers have their own internal automatic retry mechanism that ensures that they are executed. However, functions lack such a mechanism. Realm functions are executed as HTTP requests, so if they fail it is our responsibility to create a mechanism to retry. 
 
@@ -15,7 +15,9 @@ The main basis of this mechanism will be based on states. In this way we will be
 
 The algorithm that will define the passage between states, will be the following: 
 
-# System architecture
+![](https://i.ibb.co/QfWntch/triggers-queue-Diagrama-comportamiento.jpg)
+
+# System architecture
 
 The system is based on two collections and a trigger. The trigger will be defined as a database trigger that will react each time there is an insert or update in a specific collection. The collection will keep track of the events that need to be processed. Each time this trigger is activated, the event is processed in a function linked to it. The function, when processing the event, may or may not fail and we need to capture the failure to retry.
 
@@ -23,23 +25,26 @@ When the function fails, the event state is updated in the `Events` collection, 
 
 A maximum number of retries will be defined so that, once exhausted, the event will not be reprocessed and will be marked as an error in the `Error` collection.   
 
-# Sequence diagram
+# 
+Sequence diagram
 
 The following diagram shows the three use cases contemplated for this scenario. 
 
-### Use case 1: 
+### Use case 1: 
 A new document is inserted in the collection of events to be processed. Its initial state is **0** (new) and the number of retries is **0**. The trigger is activated and executes the function for this event. The function is executed successfully and the event status is updated to **1 (success)**.
 
-### Use case 2: 
-A new document is inserted into the collection of events to be processed. Its initial state is **0 (new)** and the number of retries is ****0. The trigger is activated and executes the function for this event. The function fails and the event status is updated to **2 (failed)** and the number of retries is increased to **1**.
+### Use case 2: 
+A new document is inserted into the collection of events to be processed. Its initial state is **0 (new)** and the number of retries is **0**. The trigger is activated and executes the function for this event. The function fails and the event status is updated to **2 (failed)** and the number of retries is increased to **1**.
 
-### Use case 3:
+### Use case 3:
 A document is updated in the collection of events to be processed. Its initial status is **2** (failed) and the number of retries is less than the maximum allowed. The trigger is activated and executes the function for this event. The function fails, the status remains at **2 (failed)** and the counter increases. If the counter for retries is greater than the maximum allowed, the event is sent to the `Error` collection and deleted from the `Events` collection. 
 
-### Use case 4:
+### Use case 4:
 A document is updated in the `Events` collection to be processed. Its initial status is **2 (failed)** and the number of retries is less than the maximum allowed. The trigger is activated and executes the function for this event. The function is executed successfully, the status changes to **1** (success).
 
-# Project example repository
+![](https://i.ibb.co/V9xKKKQ/triggers-queue-Diagrama-de-secuencia.jpg)
+
+# Project example repository
 
 This project uses a trigger: newEventsGenerator to generate a new document every 2 minutes through a cron job in the `Events` collection. This will simulate the creation of events to be processed. 
 The trigger eventsProcessor will be in charge of processing the events inserted or updated in the `Events` collection. To simulate a failure, a function is used that generates a random number and returns whether it is divisible or not by 2. In this way, both states can be simulated. 
@@ -52,7 +57,7 @@ function getFailOrSuccess() {
 }
 ```
 
-# Conclusions
+# Conclusions
 
 This tutorial illustrates in a simple way how we can create our own retry mechanism to increase the reliability of our application. Realm allows us to create our application completely serverless and thanks to the Realm functions we can define and execute the server-side logic for our application in the cloud. 
 
